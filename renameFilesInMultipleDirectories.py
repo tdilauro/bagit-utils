@@ -44,7 +44,10 @@ for filePath, subFolders, fileNames in os.walk(directory, topdown=True):
                     print 'anticipated changes: '+oldPath+', '+newPath
                     f.writerow([oldPath]+[newPath])
                     if makeChanges == 'true':
-                        os.rename(oldPath,newPath)
+                        if os.path.exists(newPath):
+                            print "Error renaming '%s' to '%s': destination file already exists." % (oldPath, newPath)
+                        else:
+                            os.rename(oldPath,newPath)
                     else:
                         print 'log of expected file name changes created only, no files renamed'
 
