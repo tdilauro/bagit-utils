@@ -57,14 +57,14 @@ class Bag (bagit.Bag):
             hashes = [hashlib.new(tmf_alg) for tmf_alg in tag_algorithms]
             hash_updaters = [h.update for h in hashes]
             # update the manifest file with the new filenames
-            update_payload_manifest_filepaths(os.path.join(bag_dir, pmf.relpath), new_filenames=rename_map,
+            update_payload_manifest_filepaths(pmf.path, new_filenames=rename_map,
                                               write_callbacks=hash_updaters)
             for h in hashes:
                 tag_rehash_map[h.name].update({pmf.relpath: h.hexdigest()})
 
         # update the payload manifest hashes in the tag manifests
         for tmf_alg, tmf in tag_manifest_map.items():
-            update_tag_manifest_hashes(os.path.join(bag_dir, tmf.relpath), new_hashes=tag_rehash_map[tmf_alg])
+            update_tag_manifest_hashes(tmf.path, new_hashes=tag_rehash_map[tmf_alg])
 
     def manifest_objects(self, manifest_files, pattern=None):
         if pattern is None:
