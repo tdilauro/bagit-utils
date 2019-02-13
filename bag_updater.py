@@ -26,6 +26,16 @@ class Bag (bagit.Bag):
         return self.__class__(self.path)
 
     def update_payload_filenames(self, rename_map=None, payload_manifests=None, tag_manifests=None):
+        """OVERALL PROCESS
+            given a map of old-to-new filenames (rename_map)
+            get list of tagmanifest-*.txt files and associated hash algorithm(s)
+            for each manifest-<algorithm>.txt file
+                setup hash update callback for each tagmanifest algorithm
+                rename filepaths from old to new (checksums don't change)
+                snapshot each of the new hash(es) of the manifest
+            for each tagmanifest-<algorithm>.txt file
+                update checksums in the given <algorithm> for each of the manifest files previously listed
+        """
         bag_dir = self.path
         if rename_map is None or len(rename_map) == 0:
             return
