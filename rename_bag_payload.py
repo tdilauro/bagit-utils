@@ -10,7 +10,9 @@ import os
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--processes', type=int, dest='processes', default=1,
+    parser.add_argument('-n', '--dry_run', dest='dry_run', action='store_true',
+                        help="don't actually make any changes")
+    parser.add_argument('--processes', dest='processes', type=int, default=1,
                         help='Use multiple processes to calculate checksums faster (default: %(default)s)')
     parser.add_argument('directories', nargs='+', help='one or more BagIt directories')
     args = parser.parse_args()
@@ -22,17 +24,19 @@ def main():
         bag.validate(processes=processes,)
 
         # our renamer is a generator
-        rename_map = {old: new for old, new in rename_files(bag.payload_files(), basedir=bag.path)}
+        rename_map = {old: new for old, new in
+                      rename_files(bag.payload_files(), basedir=bag.path, dry_run=args.dry_run)}
 
-        # update the manifests
-        bag.update_payload_filenames(rename_map=rename_map)
+        if not args.dry_run:
+            # update the manifests
+            bag.update_payload_filenames(rename_map=rename_map)
 
-        # re-open and validate the update bag
-        bag = bag.refresh()
-        bag.validate(processes=processes, )
+            # re-open and validate the update bag
+            bag = bag.refresh()
+            bag.validate(processes=processes, )
 
 
-def rename_files(files_to_rename, basedir='', institution='jhu', interfield_sep='_', intrafield_sep='-'):
+def rename_files(files_to_rename, basedir='', institution='jhu', interfield_sep='_', intrafield_sep='-', dry_run=False):
     previously = successes = failures = 0
     collection = intrafield_sep.join(os.path.basename(basedir).split(intrafield_sep)[0:2])
     for filepath in files_to_rename:
@@ -44,7 +48,7 @@ def rename_files(files_to_rename, basedir='', institution='jhu', interfield_sep=
             dir_tree[-1] = new_basename
             new_filepath = os.sep.join(dir_tree)
             # print("- renaming '%s' to '%s'..." % (filepath, new_filepath), end='')
-            if fs_rename(filepath, new_filepath, basedir=basedir, dry_run=False):
+            if fs_rename(filepath, new_filepath, basedir=basedir, dry_run=dry_run):
                 successes += 1
                 # print('success.')
                 # yield the old and new path only on success
