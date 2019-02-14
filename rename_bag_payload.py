@@ -5,6 +5,7 @@ from __future__ import print_function, unicode_literals
 
 import argparse
 from bag_updater import Bag
+from collections import OrderedDict
 import csv
 from datetime import datetime
 import os
@@ -30,8 +31,9 @@ def main():
         bag.validate(processes=processes,)
 
         # our renamer is a generator
-        rename_map = {old: new for old, new in
-                      rename_files(bag.payload_files(), basedir=bag.path, dry_run=args.dry_run)}
+        payload_files = sorted(bag.payload_files())
+        rename_map = OrderedDict((old, new) for old, new
+                                 in rename_files(payload_files, basedir=bag.path, dry_run=args.dry_run))
 
         if args.map or args.map_file is not None:
             if args.map_file is not None:
