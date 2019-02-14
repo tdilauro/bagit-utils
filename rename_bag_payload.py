@@ -5,13 +5,18 @@ from __future__ import print_function, unicode_literals
 
 import argparse
 from bag_updater import Bag
+import csv
+from datetime import datetime
 import os
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-n', '--dry_run', dest='dry_run', action='store_true',
+    parser.add_argument('-n', '--dry-run', dest='dry_run', action='store_true',
                         help="don't actually make any changes")
+    parser.add_argument('-m', '--map', dest='map', action='store_true',
+                        help="output the mapping from old filename to new filename")
+    parser.add_argument('--map-file', dest='map_file', help='file to receive mapping from old filename to new filename')
     parser.add_argument('--processes', dest='processes', type=int, default=1,
                         help='Use multiple processes to calculate checksums faster (default: %(default)s)')
     parser.add_argument('directories', nargs='+', help='one or more BagIt directories')
@@ -21,11 +26,20 @@ def main():
 
     for bag_dir in args.directories:
         bag = Bag(bag_dir)
+        bag_short_name = os.path.basename(bag.path)
         bag.validate(processes=processes,)
 
         # our renamer is a generator
         rename_map = {old: new for old, new in
                       rename_files(bag.payload_files(), basedir=bag.path, dry_run=args.dry_run)}
+
+        if args.map or args.map_file is not None:
+            if args.map_file is not None:
+                map_file = args.map_file
+            else:
+                map_file = 'renameLog-' + bag_short_name + '-' + datetime.now().strftime('%Y%m%dT%H%M%S') + '.csv'
+            print("Printing rename map to file '%s'" % map_file)
+            emit_rename_map(rename_map, filename=map_file, type='csv')
 
         if not args.dry_run:
             # update the manifests
@@ -34,6 +48,14 @@ def main():
             # re-open and validate the update bag
             bag = bag.refresh()
             bag.validate(processes=processes, )
+
+
+def emit_rename_map(rename_map, filename=None, type='csv'):
+    f = csv.writer(open(filename, 'wb'))
+    with open(filename, 'wb') as f:
+        writer = csv.writer(f)
+        for old, new in rename_map.items():
+            writer.writerow([old, new])
 
 
 def rename_files(files_to_rename, basedir='', institution='jhu', interfield_sep='_', intrafield_sep='-', dry_run=False):
